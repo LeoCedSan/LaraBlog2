@@ -49,6 +49,7 @@ new class extends Component {
 
     private function authorizeChirpEdit(Chirp $chirp): void
     {
+
         if ($this->user->role_id === 1 && $chirp->user_id !== $this->user->id) {
             abort(403, 'Unauthorized');
         }

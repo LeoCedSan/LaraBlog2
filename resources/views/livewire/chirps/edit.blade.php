@@ -18,7 +18,6 @@ new class extends Component {
  
     public function update(): void
     {
-        $this->authorize('update', $this->chirp);
  
         $validated = $this->validate();
  
