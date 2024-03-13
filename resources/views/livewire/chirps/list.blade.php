@@ -1,52 +1,67 @@
 <?php
-
-use App\Models\Chirp; 
+use App\Models\Chirp;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Volt\Component;
-use Livewire\Attributes\On; 
-use Illuminate\Support\Facades\Auth; // Agrega esto al principio
+use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Auth;
 
 new class extends Component {
-    public Collection $chirps; 
-    public $user; // Declara la variable $user
+    public Collection $chirps;
+    public $user;
 
-    public ?Chirp $editing = null; 
+    public ?Chirp $editing = null;
 
     public function mount(): void
     {
-        $this->user = Auth::user(); // Asigna el usuario actual
-        $this->getChirps(); 
-    } 
-    
+        $this->user = Auth::user();
+        $this->getChirps();
+    }
+
     #[On('chirp-created')]
     public function getChirps(): void
     {
         $this->chirps = Chirp::with('user')
             ->latest()
             ->get();
-    } 
-     
+    }
+
     public function edit(Chirp $chirp): void
     {
+        $this->authorizeChirpEdit($chirp);
         $this->editing = $chirp;
         $this->getChirps();
-    } 
-     
+    }
+
     #[On('chirp-edit-canceled')]
-    #[On('chirp-updated')] 
+    #[On('chirp-updated')]
     public function disableEditing(): void
     {
         $this->editing = null;
         $this->getChirps();
-    } 
+    }
 
     public function delete(Chirp $chirp): void
     {
-        $this->authorize('delete', $chirp);
+        $this->authorizeChirpDelete($chirp);
         $chirp->delete();
         $this->getChirps();
-    } 
-}; ?>
+    }
+
+    private function authorizeChirpEdit(Chirp $chirp): void
+    {
+        if ($this->user->role_id === 1 && $chirp->user_id !== $this->user->id) {
+            abort(403, 'Unauthorized');
+        }
+    }
+
+    private function authorizeChirpDelete(Chirp $chirp): void
+    {
+        if ($this->user->role_id === 1 && $chirp->user_id !== $this->user->id) {
+            abort(403, 'Unauthorized');
+        }
+    }
+};
+ ?>
 
 <div class="mt-6 bg-white shadow-sm rounded-lg divide-y">
     @foreach ($chirps as $chirp)
@@ -63,7 +78,7 @@ new class extends Component {
                             <small class="text-sm text-gray-600"> &middot; {{ __('edited') }}</small>
                         @endunless
                     </div>
-                    @if ($chirp->user->is(auth()->user()))
+                    @if ($user->role_id === 2 || ($user->role_id === 1 && $chirp->user_id === $user->id))
                         <x-dropdown>
                             <x-slot name="trigger">
                                 <button>
@@ -98,7 +113,7 @@ new class extends Component {
                                     <span class="font-semibold">{{ optional($comment->user)->name ?? 'Anonymous' }}</span>
                                     <span class="text-gray-700">{{ $comment->content }}</span>
                                 </div>
-                                @if ($comment->user_id === auth()->id())
+                                @if ($comment->user_id === auth()->id() || $user->role_id === 2 || ($user->role_id === 1 && $comment->user_id === $user->id))
                                     <div class="flex space-x-2">
                                         <a href="{{ route('comments.edit', $comment->id) }}" class="text-blue-500 hover:text-blue-700">Editar</a>
                                         <form action="{{ route('comments.destroy', $comment->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este comentario?')">
