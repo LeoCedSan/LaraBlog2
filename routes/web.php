@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ChirpController;
+use App\Http\Controllers\CommentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::view('/', 'welcome');
- 
+
 Route::get('chirps', [ChirpController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('chirps');
@@ -28,4 +29,15 @@ Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
 
-require __DIR__.'/auth.php';
+Route::get('chirps', [ChirpController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('chirps');
+
+    Route::get('chirps/{chirp}/comments/create', [App\Http\Controllers\CommentController::class, 'showCommentForm'])->name('comments.create');
+    Route::post('/chirps/{chirp}/comments', [App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
+    Route::get('comments/{comment}/edit', [CommentController::class, 'edit'])->name('comments.edit');
+    Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
+
+
+require __DIR__ . '/auth.php';

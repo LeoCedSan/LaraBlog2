@@ -4,17 +4,18 @@ use App\Models\Chirp;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Volt\Component;
 use Livewire\Attributes\On; 
+use Illuminate\Support\Facades\Auth; // Agrega esto al principio
 
 new class extends Component {
     public Collection $chirps; 
+    public $user; // Declara la variable $user
 
     public ?Chirp $editing = null; 
 
- 
     public function mount(): void
     {
+        $this->user = Auth::user(); // Asigna el usuario actual
         $this->getChirps(); 
-
     } 
     
     #[On('chirp-created')]
@@ -28,7 +29,6 @@ new class extends Component {
     public function edit(Chirp $chirp): void
     {
         $this->editing = $chirp;
- 
         $this->getChirps();
     } 
      
@@ -37,15 +37,13 @@ new class extends Component {
     public function disableEditing(): void
     {
         $this->editing = null;
- 
         $this->getChirps();
     } 
+
     public function delete(Chirp $chirp): void
     {
         $this->authorize('delete', $chirp);
- 
         $chirp->delete();
- 
         $this->getChirps();
     } 
 }; ?>
@@ -90,6 +88,37 @@ new class extends Component {
                 @else
                     <p class="mt-4 text-lg text-gray-900">{{ $chirp->message }}</p>
                 @endif 
+
+                <div class="mt-4">
+                    <!-- Mostrar comentarios -->
+                    @foreach ($chirp->comments as $comment)
+                        <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="font-semibold">{{ optional($comment->user)->name ?? 'Anonymous' }}</span>
+                                    <span class="text-gray-700">{{ $comment->content }}</span>
+                                </div>
+                                @if ($comment->user_id === auth()->id())
+                                    <div class="flex space-x-2">
+                                        <a href="{{ route('comments.edit', $comment->id) }}" class="text-blue-500 hover:text-blue-700">Editar</a>
+                                        <form action="{{ route('comments.destroy', $comment->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este comentario?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-500 hover:text-red-700">Eliminar</button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                
+                <!-- Formulario para agregar comentario -->
+                <form action="{{ route('comments.store', $chirp->id) }}" method="post">
+                    @csrf
+                    <textarea name="content" cols="30" rows="1"></textarea>
+                    <button type="submit">Agregar Comentario</button>
+                </form>
             </div>
         </div>
     @endforeach
